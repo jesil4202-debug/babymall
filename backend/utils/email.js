@@ -1,14 +1,66 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// ✅ LAZY LOAD: Create transporter only when needed & verify env vars
+let transporter = null;
+let transporterInitError = null;
+
+const initializeTransporter = () => {
+  // Return existing transporter if already initialized
+  if (transporter) return transporter;
+  if (transporterInitError) throw transporterInitError;
+
+  // Validate required env vars
+  const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_FROM'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    transporterInitError = new Error(
+      `❌ EMAIL CONFIG ERROR: Missing environment variables: ${missing.join(', ')}\n` +
+      `   On Render dashboard: Go to Environment and add:\n` +
+      `   EMAIL_HOST=smtp.gmail.com\n` +
+      `   EMAIL_PORT=587\n` +
+      `   EMAIL_USER=your-email@gmail.com\n` +
+      `   EMAIL_PASS=your-16-char-app-password\n` +
+      `   EMAIL_FROM=your-email@gmail.com`
+    );
+    throw transporterInitError;
+  }
+
+  console.log('📧 Initializing Nodemailer transporter...');
+  console.log('   Host:', process.env.EMAIL_HOST);
+  console.log('   Port:', process.env.EMAIL_PORT);
+  console.log('   User:', process.env.EMAIL_USER);
+  console.log('   From:', process.env.EMAIL_FROM);
+
+  try {
+    transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT, 10),
+      secure: false, // Use TLS (not SSL) for port 587
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      // ✅ Render optimization: Enable connection pooling
+      pool: {
+        maxConnections: 5,
+        maxMessages: 100,
+        rateDelta: 1000,
+        rateLimit: 5,
+      },
+      // ✅ Gmail: Increase timeout for slower cloud connections
+      connectionTimeout: 5000,
+      socketTimeout: 10000,
+    });
+
+    console.log('✅ Nodemailer transporter initialized successfully');
+    return transporter;
+  } catch (error) {
+    transporterInitError = error;
+    console.error('❌ Failed to create transporter:', error.message);
+    throw error;
+  }
+};
 
 const sendEmail = async ({ to, subject, html }) => {
   const mailOptions = {
@@ -17,11 +69,41 @@ const sendEmail = async ({ to, subject, html }) => {
     subject,
     html,
   };
+  
   try {
-    await transporter.sendMail(mailOptions);
-  } catch(err) {
-    console.error('Email send failed! Error:', err.message);
-    throw new Error('Failed to send email. Check SMTP credentials.');
+    console.log(`📤 Sending email to: ${to}, Subject: ${subject}`);
+    
+    // Initialize transporter if needed
+    const mailer = initializeTransporter();
+    
+    const info = await mailer.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully. MessageID: ${info.messageId}`);
+    return info;
+    
+  } catch (err) {
+    console.error('❌ Email send failed!');
+    console.error('   Error:', err.message);
+    console.error('   Recipients:', mailOptions.to);
+    console.error('   Subject:', mailOptions.subject);
+    
+    // Provide helpful troubleshooting for common Gmail issues
+    if (err.message.includes('Invalid login') || err.message.includes('Authentication failed')) {
+      console.error('\n⚠️  GMAIL AUTHENTICATION ERROR - Check:');
+      console.error('   1. Is user email correct? (must be Gmail with 2FA enabled)');
+      console.error('   2. Is app password correct? (16 chars, NOT your Gmail password)');
+      console.error('   3. Has Gmail blocked unusual sign-in activity from Render IP?');
+      console.error('   → Go to: https://myaccount.google.com/security');
+      console.error('   → Check "Allow less secure apps" or use app password');
+    }
+    
+    if (err.message.includes('getaddrinfo') || err.message.includes('connect ETIMEDOUT')) {
+      console.error('\n⚠️  NETWORK/DNS ERROR:');
+      console.error('   1. Verify EMAIL_HOST is correct (smtp.gmail.com)');
+      console.error('   2. Check if Render has internet access');
+      console.error('   3. Render may need to be on a paid plan for outbound SMTP');
+    }
+    
+    throw new Error(`Failed to send email: ${err.message}`);
   }
 };
 
@@ -148,6 +230,7 @@ const abandonedCartTemplate = (user, cartItems) => `
 
 module.exports = {
   sendEmail,
+  initializeTransporter,
   orderConfirmationTemplate,
   shippingUpdateTemplate,
   abandonedCartTemplate,

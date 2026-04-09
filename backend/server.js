@@ -1,4 +1,12 @@
-require('dotenv').config();
+// ⚠️ IMPORTANT: Only load .env in development. Render provides env vars directly.
+if (process.env.NODE_ENV !== 'production') {
+  const dotenv = require('dotenv');
+  const result = dotenv.config();
+  if (result.error && result.error.code !== 'ENOENT') {
+    console.warn('⚠️  Warning: .env file not found (OK in production):', result.error.message);
+  }
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,6 +15,27 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+
+// ✅ Diagnostic: Log critical environment variables at startup
+const logEnvDiagnostics = () => {
+  const isDev = process.env.NODE_ENV !== 'production';
+  console.log('\n🔧 Environment Diagnostics:');
+  console.log('  NODE_ENV:', process.env.NODE_ENV);
+  console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || '❌ NOT SET');
+  console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ SET (hidden)' : '❌ NOT SET');
+  console.log('  EMAIL_HOST:', process.env.EMAIL_HOST || '❌ NOT SET');
+  console.log('  EMAIL_PORT:', process.env.EMAIL_PORT || '❌ NOT SET');
+  console.log('  EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET (hidden)' : '❌ NOT SET');
+  console.log('  EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ SET (hidden)' : '❌ NOT SET');
+  console.log('  EMAIL_FROM:', process.env.EMAIL_FROM || '❌ NOT SET');
+  console.log('');
+  
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('❌ CRITICAL: Email environment variables are missing!');
+    console.error('   On Render: Dashboard → Environment');;
+    console.error('   Required: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM');
+  }
+};
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -18,15 +47,28 @@ const bannerRoutes = require('./routes/banners');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-app.set('trust proxy', 1);
+
+// ✅ Run environment diagnostics
+logEnvDiagnostics();
 
 // Connect Database
 connectDB();
 
-// CORS - MUST be before other middleware for preflight
+// Security Middleware
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  keyGenerator: rateLimit.ipKeyGenerator,
+  message: { success: false, message: 'Too many requests. Please try again later.' },
+});
+app.use('/api/', limiter);
+
+// CORS
 app.use(cors({
-  origin: ["http://localhost:3000"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
 
@@ -34,20 +76,6 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-
-// Security Middleware (Moved after CORS)
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 120,
-  keyGenerator: rateLimit.ipKeyGenerator,
-  message: { success: false, message: 'Too many requests. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
 
 // Logger
 if (process.env.NODE_ENV === 'development') {
@@ -78,7 +106,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Baby Mall API running on http://127.0.0.1:${PORT}`);
+  console.log(`🚀 Baby Mall API running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
 // Handle unhandled promise rejections

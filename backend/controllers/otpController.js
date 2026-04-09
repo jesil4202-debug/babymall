@@ -97,12 +97,20 @@ exports.requestOtp = async (req, res) => {
 
     await Otp.create({ email, otpHash, expiresAt, lastSentAt: new Date() });
 
-    // Send email (we let it throw error now to catch silent failures)
-    await sendEmail({
-      to: email,
-      subject: 'Your Baby Mall Login Code',
-      html: otpEmailHtml(otp),
-    });
+    // Send email with comprehensive error logging
+    try {
+      console.log(`🔐 OTP Request: Sending OTP to ${email}`);
+      await sendEmail({
+        to: email,
+        subject: 'Your Baby Mall Login Code',
+        html: otpEmailHtml(otp),
+      });
+      console.log(`✅ OTP sent successfully to ${email}`);
+    } catch (emailError) {
+      console.error(`❌ OTP Email failed for ${email}:`, emailError.message);
+      console.error('   Stack:', emailError.stack);
+      throw emailError; // Re-throw to be caught by outer catch
+    }
 
     return res.status(200).json({
       success: true,
