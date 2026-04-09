@@ -1,0 +1,46 @@
+﻿
+> baby-mall-backend@1.0.0 dev
+> nodemon server.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server.js`[39m
+Γùç injecting env (15) from .env // tip: Γùê encrypted .env [www.dotenvx.com]
+node.exe : node:internal/modules/cjs/loader:1459
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo              : NotSpecified: (n    ode:internal/modules/    cjs/loader:1459:Strin    g) [], RemoteExceptio    n
+    + FullyQualifiedError    Id : NativeCommandErr    or
+ 
+  throw err;
+  ^
+
+Error: Cannot find module '../config/cloudinary'
+Require stack:
+- C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\controllers\orderController.js
+- C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\routes\orders.js
+- C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1556:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\controllers\orderController.js:8:24)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\moham\\.gemini\\antigravity\\scratch\\baby-mall\\backend\\controllers\\orderController.js',
+    'C:\\Users\\moham\\.gemini\\antigravity\\scratch\\baby-mall\\backend\\routes\\orders.js',
+    'C:\\Users\\moham\\.gemini\\antigravity\\scratch\\baby-mall\\backend\\server.js'
+  ]
+}
+
+Node.js v24.14.0
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+

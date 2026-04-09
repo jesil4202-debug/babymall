@@ -1,0 +1,4 @@
+TypeError: next is not a function
+    at model.<anonymous> (C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\models\Product.js:77:3)
+    at Kareem.execPre (C:\Users\moham\.gemini\antigravity\scratch\baby-mall\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

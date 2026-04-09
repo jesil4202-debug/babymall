@@ -1,0 +1,34 @@
+﻿
+
+Name          : file.svg
+Length        : 391
+LastWriteTime : 04-04-2026
+                 12:29:36
+
+Name          : globe.svg
+Length        : 1035
+LastWriteTime : 04-04-2026
+                 12:29:36
+
+Name          : logo.png
+Length        : 119199
+LastWriteTime : 06-04-2026
+                 16:02:23
+
+Name          : next.svg
+Length        : 1375
+LastWriteTime : 04-04-2026
+                 12:29:37
+
+Name          : vercel.svg
+Length        : 128
+LastWriteTime : 04-04-2026
+                 12:29:37
+
+Name          : window.svg
+Length        : 385
+LastWriteTime : 04-04-2026
+                 12:29:37
+
+
+

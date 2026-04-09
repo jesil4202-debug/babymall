@@ -1,0 +1,4 @@
+﻿Γùç injecting env (15) from .env // tip: Γîü auth for agents [www.vestauth.com]
+[OK] ./server.js
+≡ƒÜÇ Baby Mall API running on port 5000 in development mode
+Γ£à MongoDB Connected: ac-ews9qmw-shard-00-00.aueyxxz.mongodb.net
