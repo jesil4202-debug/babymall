@@ -1,109 +1,85 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// ✅ LAZY LOAD: Create transporter only when needed & verify env vars
-let transporter = null;
-let transporterInitError = null;
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const initializeTransporter = () => {
-  // Return existing transporter if already initialized
-  if (transporter) return transporter;
-  if (transporterInitError) throw transporterInitError;
-
-  // Validate required env vars
-  const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_FROM'];
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    transporterInitError = new Error(
-      `❌ EMAIL CONFIG ERROR: Missing environment variables: ${missing.join(', ')}\n` +
-      `   On Render dashboard: Go to Environment and add:\n` +
-      `   EMAIL_HOST=smtp.gmail.com\n` +
-      `   EMAIL_PORT=587\n` +
-      `   EMAIL_USER=your-email@gmail.com\n` +
-      `   EMAIL_PASS=your-16-char-app-password\n` +
-      `   EMAIL_FROM=your-email@gmail.com`
-    );
-    throw transporterInitError;
-  }
-
-  console.log('📧 Initializing Nodemailer transporter...');
-  console.log('   Host:', process.env.EMAIL_HOST);
-  console.log('   Port:', process.env.EMAIL_PORT);
-  console.log('   User:', process.env.EMAIL_USER);
-  console.log('   From:', process.env.EMAIL_FROM);
-
+/**
+ * Send email using Resend API
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email address
+ * @param {string} options.subject - Email subject line
+ * @param {string} options.html - HTML email body
+ * @returns {Promise<Object>} Email response with ID
+ * @throws {Error} If email sending fails
+ */
+const sendEmail = async ({ to, subject, html }) => {
   try {
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT, 10),
-      secure: false, // Use TLS (not SSL) for port 587
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      // ✅ Render optimization: Enable connection pooling
-      pool: {
-        maxConnections: 5,
-        maxMessages: 100,
-        rateDelta: 1000,
-        rateLimit: 5,
-      },
-      // ✅ Gmail: Increase timeout for slower cloud connections
-      connectionTimeout: 5000,
-      socketTimeout: 10000,
+    // Validate required environment variables
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is not set');
+    }
+
+    const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+    console.log(`📧 Sending email via Resend API`);
+    console.log(`   To: ${to}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   From: ${emailFrom}`);
+
+    // Send email using Resend API
+    const response = await resend.emails.send({
+      from: emailFrom,
+      to,
+      subject,
+      html,
     });
 
-    console.log('✅ Nodemailer transporter initialized successfully');
-    return transporter;
-  } catch (error) {
-    transporterInitError = error;
-    console.error('❌ Failed to create transporter:', error.message);
-    throw error;
-  }
-};
+    // Check for API errors
+    if (response.error) {
+      console.error('❌ Resend API returned an error:', response.error);
+      throw new Error(`Resend API error: ${response.error.message}`);
+    }
 
-const sendEmail = async ({ to, subject, html }) => {
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    html,
-  };
-  
-  try {
-    console.log(`📤 Sending email to: ${to}, Subject: ${subject}`);
-    
-    // Initialize transporter if needed
-    const mailer = initializeTransporter();
-    
-    const info = await mailer.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully. MessageID: ${info.messageId}`);
-    return info;
-    
-  } catch (err) {
-    console.error('❌ Email send failed!');
-    console.error('   Error:', err.message);
-    console.error('   Recipients:', mailOptions.to);
-    console.error('   Subject:', mailOptions.subject);
-    
-    // Provide helpful troubleshooting for common Gmail issues
-    if (err.message.includes('Invalid login') || err.message.includes('Authentication failed')) {
-      console.error('\n⚠️  GMAIL AUTHENTICATION ERROR - Check:');
-      console.error('   1. Is user email correct? (must be Gmail with 2FA enabled)');
-      console.error('   2. Is app password correct? (16 chars, NOT your Gmail password)');
-      console.error('   3. Has Gmail blocked unusual sign-in activity from Render IP?');
-      console.error('   → Go to: https://myaccount.google.com/security');
-      console.error('   → Check "Allow less secure apps" or use app password');
+    // Verify response has required data
+    if (!response.data || !response.data.id) {
+      console.error('❌ Invalid response from Resend API:', response);
+      throw new Error('Resend API returned invalid response');
     }
-    
-    if (err.message.includes('getaddrinfo') || err.message.includes('connect ETIMEDOUT')) {
-      console.error('\n⚠️  NETWORK/DNS ERROR:');
-      console.error('   1. Verify EMAIL_HOST is correct (smtp.gmail.com)');
-      console.error('   2. Check if Render has internet access');
-      console.error('   3. Render may need to be on a paid plan for outbound SMTP');
+
+    console.log(`✅ Email sent successfully!`);
+    console.log(`   Email ID: ${response.data.id}`);
+
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ Email sending failed!');
+    console.error('   Error Message:', error.message);
+    console.error('   Recipient:', to);
+    console.error('   Subject:', subject);
+
+    // Log detailed troubleshooting info
+    if (error.message.includes('RESEND_API_KEY')) {
+      console.error('\n⚠️  TROUBLESHOOTING: Missing RESEND_API_KEY');
+      console.error('   → Set RESEND_API_KEY in environment variables');
+      console.error('   → Get API key from: https://resend.com/api-keys');
     }
-    
-    throw new Error(`Failed to send email: ${err.message}`);
+
+    if (error.message.includes('unauthorized') || error.message.includes('invalid')) {
+      console.error('\n⚠️  TROUBLESHOOTING: Invalid API Key');
+      console.error('   → Check RESEND_API_KEY value');
+      console.error('   → Ensure it starts with "re_"');
+      console.error('   → Try generating a new key from Resend dashboard');
+    }
+
+    if (error.message.includes('from') || error.message.includes('domain')) {
+      console.error('\n⚠️  TROUBLESHOOTING: Invalid Sender Domain');
+      console.error('   → Verify EMAIL_FROM is set correctly');
+      console.error('   → For testing: use onboarding@resend.dev');
+      console.error('   → For production: verify your domain in Resend dashboard');
+    }
+
+    // Re-throw the error for calling code to handle
+    throw new Error(`Failed to send email: ${error.message}`);
   }
 };
 
@@ -230,7 +206,6 @@ const abandonedCartTemplate = (user, cartItems) => `
 
 module.exports = {
   sendEmail,
-  initializeTransporter,
   orderConfirmationTemplate,
   shippingUpdateTemplate,
   abandonedCartTemplate,

@@ -23,17 +23,15 @@ const logEnvDiagnostics = () => {
   console.log('  NODE_ENV:', process.env.NODE_ENV);
   console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || '❌ NOT SET');
   console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ SET (hidden)' : '❌ NOT SET');
-  console.log('  EMAIL_HOST:', process.env.EMAIL_HOST || '❌ NOT SET');
-  console.log('  EMAIL_PORT:', process.env.EMAIL_PORT || '❌ NOT SET');
-  console.log('  EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET (hidden)' : '❌ NOT SET');
-  console.log('  EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ SET (hidden)' : '❌ NOT SET');
+  console.log('  RESEND_API_KEY:', process.env.RESEND_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET');
   console.log('  EMAIL_FROM:', process.env.EMAIL_FROM || '❌ NOT SET');
   console.log('');
   
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('❌ CRITICAL: Email environment variables are missing!');
-    console.error('   On Render: Dashboard → Environment');;
-    console.error('   Required: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM');
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ CRITICAL: Email service configuration is missing!');
+    console.error('   On Render: Dashboard → Environment');
+    console.error('   Required: RESEND_API_KEY, EMAIL_FROM');
+    console.error('   Get API key from: https://resend.com/api-keys');
   }
 };
 
