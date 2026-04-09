@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 const Otp = require('../models/Otp');
 const User = require('../models/User');
-const { sendEmail } = require('../utils/email');
+const { sendEmail } = require('../utils/sendEmail');
 const { sendTokenResponse } = require('../utils/jwt');
 
 // ─── helpers ────────────────────────────────────────────────────────────────

@@ -38,7 +38,7 @@ const verifyValidation = [
     .withMessage('OTP must be exactly 6 digits.'),
 ];
 
-// 🔧 DEBUG ENDPOINT: Verify email configuration (Dev/Staging only)
+// 🔧 DEBUG ENDPOINT: Verify Resend API configuration (Dev/Staging only)
 router.get('/debug/test-email', async (req, res) => {
   // Optional: Add IP whitelist for security
   if (process.env.NODE_ENV === 'production') {
@@ -46,38 +46,42 @@ router.get('/debug/test-email', async (req, res) => {
   }
 
   try {
-    const { initializeTransporter } = require('../utils/email');
-    const transporter = initializeTransporter();
-
-    // Test email connection
-    console.log('🔧 Testing email configuration...');
-    const verification = await transporter.verify();
-
-    if (verification) {
-      console.log('✅ Email configuration is valid');
-      return res.status(200).json({
-        success: true,
-        message: 'Email configuration is valid and working!',
-        config: {
-          host: process.env.EMAIL_HOST,
-          port: process.env.EMAIL_PORT,
-          user: process.env.EMAIL_USER,
-          from: process.env.EMAIL_FROM,
-        },
-      });
-    } else {
-      console.log('❌ Email configuration failed verification');
+    if (!process.env.RESEND_API_KEY) {
       return res.status(400).json({
         success: false,
-        message: 'Email configuration verification failed. Check SMTP credentials.',
+        message: 'RESEND_API_KEY environment variable is not set',
+        hint: 'Add RESEND_API_KEY to your environment variables. Get it from https://resend.com/api-keys'
       });
     }
+
+    if (!process.env.EMAIL_FROM) {
+      return res.status(400).json({
+        success: false,
+        message: 'EMAIL_FROM environment variable is not set',
+        hint: 'Add EMAIL_FROM to your environment variables. Use a verified domain or onboarding@resend.dev for testing'
+      });
+    }
+
+    console.log('🔧 Testing Resend API configuration...');
+    console.log('   RESEND_API_KEY: Set ✓');
+    console.log('   EMAIL_FROM:', process.env.EMAIL_FROM);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resend API configuration is valid!',
+      config: {
+        apiKeySet: !!process.env.RESEND_API_KEY,
+        emailFrom: process.env.EMAIL_FROM,
+        provider: 'Resend',
+      },
+    });
+
   } catch (error) {
-    console.error('❌ Email test failed:', error.message);
+    console.error('❌ Resend API test failed:', error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to verify email configuration',
-      hint: 'Check that EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASS are set correctly in environment variables',
+      message: error.message || 'Failed to verify Resend configuration',
+      hint: 'Check that RESEND_API_KEY and EMAIL_FROM are set correctly in environment variables',
     });
   }
 });
