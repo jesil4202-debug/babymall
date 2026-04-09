@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+/**
+ * Construct API URL with /api path
+ * Handles both full URLs and raw backend URLs
+ * Examples:
+ *   - "http://localhost:5000" → "http://localhost:5000/api"
+ *   - "http://localhost:5000/api" → "http://localhost:5000/api"
+ *   - "https://backend.onrender.com" → "https://backend.onrender.com/api"
+ */
+const getApiUrl = (): string => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
+  
+  // Ensure baseUrl ends with /api
+  const url = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+  return url;
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
