@@ -63,6 +63,10 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const { data } = await api.post('/auth/otp/verify', { email, otp, name });
+          console.log('✅ OTP Verified:', { email, role: data.user.role, name: data.user.name });
+          if (data.user.role === 'admin') {
+            console.log('🔒 Admin role detected - access to admin panel enabled');
+          }
           localStorage.setItem('bm_token', data.token);
           set({ user: data.user, token: data.token, isAuthenticated: true });
         } finally {
@@ -81,6 +85,10 @@ export const useAuthStore = create<AuthState>()(
       fetchMe: async () => {
         try {
           const { data } = await api.get('/auth/me');
+          console.log('👤 User Fetched:', { email: data.user.email, role: data.user.role });
+          if (data.user.role === 'admin') {
+            console.log('🔒 Admin role confirmed');
+          }
           set({ user: data.user, isAuthenticated: true });
         } catch {
           set({ user: null, token: null, isAuthenticated: false });

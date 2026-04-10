@@ -193,6 +193,9 @@ exports.verifyOtp = async (req, res) => {
       .map(e => e.trim().toLowerCase());
     const isAdminEmail = adminEmails.includes(email.toLowerCase());
 
+    console.log(`\n🔐 OTP Verification: ${email}`);
+    console.log(`   Admin Email: ${isAdminEmail ? '✅ Yes' : '❌ No (Admin Emails: ' + adminEmails.join(', ') + ')'}`);
+
     // Find or create user
     let user = await User.findOne({ email });
     if (!user) {
@@ -202,9 +205,13 @@ exports.verifyOtp = async (req, res) => {
         isActive: true,
         role: isAdminEmail ? 'admin' : 'user',
       });
+      console.log(`   New User Created: ${user.email}, Role: ${user.role}`);
     } else if (isAdminEmail && user.role !== 'admin') {
       // Ensure the admin email always has admin role (fixes existing accounts)
       user.role = 'admin';
+      console.log(`   Existing User Updated: ${user.email}, Role: ${user.role}`);
+    } else {
+      console.log(`   Existing User: ${user.email}, Role: ${user.role}`);
     }
 
     // Update last login

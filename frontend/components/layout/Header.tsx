@@ -171,8 +171,9 @@ export default function Header() {
                       <div className="px-4 py-2 border-b border-gray-50">
                         <p className="font-700 text-sm text-gray-800 truncate">{user?.name}</p>
                         <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                        {user?.role && <p className="text-xs text-gray-500 mt-1">Role: {user.role}</p>}
                       </div>
-                      {user?.role === 'admin' && user?.email === 'jesil4202@gmail.com' && (
+                      {user?.role === 'admin' && (
                         <Link
                           href="/admin"
                           onClick={() => setUserMenuOpen(false)}

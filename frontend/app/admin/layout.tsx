@@ -7,8 +7,6 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import { ShieldX, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ADMIN_EMAIL = 'jesil4202@gmail.com';
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -17,15 +15,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     // Give Zustand a tick to hydrate from localStorage
     const timer = setTimeout(() => {
+      console.log('🔐 Admin Auth Check:', { isAuthenticated, role: user?.role, email: user?.email });
       if (!isAuthenticated) {
+        console.log('❌ Not authenticated');
         router.replace('/auth/login?redirect=/admin');
         setAuthState('denied');
         return;
       }
-      if (user?.role !== 'admin' || user?.email !== ADMIN_EMAIL) {
+      if (user?.role !== 'admin') {
+        console.log('❌ User role is not admin:', user?.role);
         setAuthState('denied');
         return;
       }
+      console.log('✅ Admin access granted for', user?.email);
       setAuthState('authorized');
     }, 100);
     return () => clearTimeout(timer);

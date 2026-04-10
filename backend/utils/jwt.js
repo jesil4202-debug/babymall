@@ -16,19 +16,26 @@ const sendTokenResponse = (user, statusCode, res) => {
     sameSite: 'strict',
   };
 
+  const userData = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    avatar: user.avatar,
+    addresses: user.addresses,
+    wishlist: user.wishlist,
+  };
+
+  console.log(`✅ Login Successful - User: ${user.email}, Role: ${user.role}`);
+  if (user.role === 'admin') {
+    console.log(`🔒 Admin Access Granted: ${user.email}`);
+  }
+
   res.status(statusCode).cookie('token', token, cookieOptions).json({
     success: true,
     token,
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      avatar: user.avatar,
-      addresses: user.addresses,
-      wishlist: user.wishlist,
-    },
+    user: userData,
   });
 };
 
