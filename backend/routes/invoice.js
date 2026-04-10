@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const generateInvoice = require('../utils/invoiceGenerator');
 const Order = require('../models/Order');
-const auth = require('../middleware/auth');
+const { protect: auth } = require('../middleware/auth');
 
 /**
  * @route   GET /api/invoice/:id
