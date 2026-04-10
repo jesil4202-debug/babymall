@@ -38,20 +38,7 @@ exports.authorize = (...roles) => {
       });
     }
 
-    // STRICT ADMIN PROTECTION: Verify Email against ADMIN_EMAILS
-    if (req.user.role === 'admin') {
-      const adminEmails = (process.env.ADMIN_EMAILS || 'jesil4202@gmail.com')
-        .split(',')
-        .map(email => email.trim().toLowerCase());
-      
-      if (!adminEmails.includes(req.user.email.toLowerCase())) {
-        return res.status(403).json({
-          success: false,
-          message: `Security Alert: Access denied. Admin access restricted to authorized emails.`,
-        });
-      }
-    }
-
+    // Role-based authorization only. Admin role is set in database and verified on login.
     next();
   };
 };
