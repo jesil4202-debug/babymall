@@ -81,21 +81,39 @@ export const downloadOrderInvoice = async (
   orderNumber?: string
 ) => {
   try {
+    // Ensure we're on client-side
+    if (typeof window === 'undefined') {
+      toast.error('Please try again');
+      return;
+    }
+
     const invoiceUrl = `${apiUrl}/api/invoice/${orderId}`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('bm_token') : null;
+    
+    // Get token from localStorage with error handling
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem('bm_token');
+    } catch (err) {
+      console.error('❌ localStorage access failed:', err);
+      toast.error('Session error. Please login again.');
+      return;
+    }
 
     if (!token) {
+      console.warn('⚠️  No token in localStorage');
       toast.error('Not authorized. Please login.');
       return;
     }
 
     console.log(`📥 Requesting invoice for order: ${orderId}`);
+    console.log(`🔑 Token present: ${token.substring(0, 20)}...`);
 
     // Fetch the invoice PDF with Authorization header
     const response = await fetch(invoiceUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Accept': 'application/pdf',
       },
     });
 
