@@ -60,6 +60,17 @@ export default function CheckoutPage() {
     }
   }, [items.length, isAuthenticated, placed]);
 
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const validate = (): boolean => {
     const newErrors: Partial<ShippingForm> = {};
     if (!form.name.trim()) newErrors.name = 'Full name is required.';
@@ -110,14 +121,104 @@ export default function CheckoutPage() {
         totalAmount: tot,
       };
 
-      const { data } = await api.post('/orders', orderPayload);
-      setOrderId(data.order?.orderNumber || data.order?._id || '');
-      setPlaced(true);
-      await clearCart();
-      toast.success('Order placed successfully!');
+      // ✅ COD: Create order immediately (no payment verification needed)
+      if (paymentMethod === 'cod') {
+        const { data } = await api.post('/orders', orderPayload);
+        setOrderId(data.order?.orderNumber || data.order?._id || '');
+        setPlaced(true);
+        await clearCart();
+        toast.success('Order placed successfully!');
+        return;
+      }
+
+      // ✅ RAZORPAY: Initiate payment flow
+      if (paymentMethod === 'razorpay') {
+        await handleRazorpayPayment(orderPayload);
+        return;
+      }
+
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to place order. Please try again.');
     } finally {
+      setIsPlacing(false);
+    }
+  };
+
+  // ✅ NEW: Handle Razorpay payment flow
+  const handleRazorpayPayment = async (orderPayload: any) => {
+    try {
+      // Step 1: Create Razorpay order on backend
+      console.log('📱 Step 1: Creating Razorpay order...');
+      const { data: razorpayOrderData } = await api.post('/orders/razorpay/create', {
+        amount: orderPayload.totalAmount,
+      });
+
+      const razorpayOrderId = razorpayOrderData.order.id;
+      console.log('✅ Razorpay Order Created:', razorpayOrderId);
+
+      // Step 2: Open Razorpay payment modal
+      console.log('📱 Step 2: Opening Razorpay modal...');
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        order_id: razorpayOrderId,
+        amount: Math.round(orderPayload.totalAmount * 100), // paise
+        currency: 'INR',
+        name: 'Baby Mall',
+        description: 'Order Payment',
+        image: '/favicon.ico',
+
+        // ✅ Step 3: Payment success callback
+        handler: async (response: any) => {
+          console.log('✅ Step 3: Payment successful! Response:', response);
+          
+          setIsPlacing(true);
+          try {
+            // Step 4: Verify payment and create order on backend
+            console.log('📱 Step 4: Verifying payment and creating order...');
+            const { data } = await api.post('/orders/razorpay/complete', {
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              items: orderPayload.items,
+              shippingAddress: orderPayload.shippingAddress,
+            });
+
+            console.log('✅ Payment verified and order created:', data.order);
+            setOrderId(data.order?.orderNumber || data.order?._id || '');
+            setPlaced(true);
+            await clearCart();
+            toast.success('✅ Payment successful! Order placed.');
+
+          } catch (err: any) {
+            console.error('❌ Order creation failed:', err);
+            toast.error(err.response?.data?.message || 'Failed to create order after payment. Please contact support.');
+          } finally {
+            setIsPlacing(false);
+          }
+        },
+
+        // ❌ Step 3: Payment failed callback
+        prefill: {
+          email: user?.email || '',
+          contact: form.phone || '',
+          name: form.name || '',
+        },
+        theme: {
+          color: '#E84C7A',
+        },
+      };
+
+      // Open Razorpay modal
+      const Razorpay = (window as any).Razorpay;
+      if (!Razorpay) {
+        throw new Error('Razorpay script not loaded');
+      }
+      const rzp = new Razorpay(options);
+      rzp.open();
+
+    } catch (err: any) {
+      console.error('❌ Razorpay flow error:', err);
+      toast.error(err.message || 'Failed to initiate payment. Please try again.');
       setIsPlacing(false);
     }
   };

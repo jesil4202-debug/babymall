@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createOrder, createRazorpayOrder, verifyRazorpayPayment,
+  createOrder, createRazorpayOrder, verifyRazorpayPayment, completeRazorpayOrder,
   getMyOrders, getOrder, getAllOrders, updateOrderStatus,
   downloadInvoice, getSalesAnalytics,
 } = require('../controllers/orderController');
@@ -12,6 +12,7 @@ router.use(protect);
 router.post('/', createOrder);
 router.post('/razorpay/create', createRazorpayOrder);
 router.post('/razorpay/verify', verifyRazorpayPayment);
+router.post('/razorpay/complete', completeRazorpayOrder);
 router.get('/my', getMyOrders);
 router.get('/analytics', authorize('admin'), getSalesAnalytics);
 router.get('/', authorize('admin'), getAllOrders);

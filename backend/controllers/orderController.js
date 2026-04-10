@@ -178,6 +178,135 @@ exports.verifyRazorpayPayment = async (req, res) => {
   }
 };
 
+// @desc    Complete Razorpay order (verify payment + create DB order)
+// @route   POST /api/orders/razorpay/complete
+// @access  Private
+// ✅ THIS IS WHERE ORDER IS CREATED AFTER PAYMENT VERIFICATION
+exports.completeRazorpayOrder = async (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, items, shippingAddress, coupon } = req.body;
+
+    // Step 1: Verify Razorpay signature
+    const body = razorpayOrderId + '|' + razorpayPaymentId;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest('hex');
+
+    if (expectedSignature !== razorpaySignature) {
+      console.error('❌ PAYMENT VERIFICATION FAILED for order:', razorpayOrderId);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Payment verification failed. Order not created.' 
+      });
+    }
+
+    console.log('✅ PAYMENT VERIFIED FOR RAZORPAY ORDER:', razorpayOrderId);
+
+    // Step 2: Validate order items
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'No order items.' });
+    }
+
+    const cart = await Cart.findOne({ user: req.user._id });
+    const cartItems = cart?.items || [];
+
+    // Step 3: Build order items with backend validation
+    const orderItems = [];
+    for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) {
+        return res.status(404).json({ success: false, message: `Product not found: ${item.product}` });
+      }
+      if (product.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+        });
+      }
+      
+      const matchedCartItem = cartItems.find((cartItem) => {
+        const sameProduct = cartItem.product.toString() === item.product;
+        const sameVariant = (cartItem.variant?.label || '') === (item.variant?.label || '');
+        return sameProduct && sameVariant;
+      });
+
+      const price = matchedCartItem?.price ?? item.variant?.price ?? product.price;
+      const deliveryCharge = matchedCartItem?.deliveryCharge ?? product.deliveryCharge ?? 0;
+
+      orderItems.push({
+        product: product._id,
+        name: product.name,
+        image: product.images[0]?.url || '',
+        price,
+        deliveryCharge,
+        quantity: item.quantity,
+        variant: item.variant,
+      });
+    }
+
+    // Step 4: Calculate totals
+    const { subtotal: itemsTotal, deliveryTotal: deliveryCharge, totalAmount: strictTotal } = calculateTotals(orderItems);
+    const discount = 0; // Apply coupon logic here if needed
+    const totalAmount = strictTotal - discount;
+
+    // Step 5: CREATE ORDER IN DB (NOW THAT PAYMENT IS VERIFIED)
+    const order = await Order.create({
+      user: req.user._id,
+      items: orderItems,
+      shippingAddress,
+      paymentMethod: 'razorpay',
+      itemsTotal,
+      deliveryCharge,
+      discount,
+      totalAmount,
+      'payment.razorpayOrderId': razorpayOrderId,
+      'payment.razorpayPaymentId': razorpayPaymentId,
+      'payment.razorpaySignature': razorpaySignature,
+      'payment.status': 'paid',
+      'payment.paidAt': new Date(),
+      deliveryStatus: 'confirmed',
+    });
+
+    console.log('✅ ORDER CREATED IN DB:', order._id, 'for user:', req.user._id);
+
+    // Step 6: Deduct stock AFTER order is created
+    for (const item of items) {
+      await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+      console.log('✅ STOCK DEDUCTED for:', item.product);
+    }
+
+    // Step 7: Clear cart
+    await Cart.findOneAndUpdate({ user: req.user._id }, { items: [] });
+    console.log('✅ CART CLEARED for user:', req.user._id);
+
+    // Step 8: Send confirmation email
+    try {
+      await sendEmail({
+        to: req.user.email,
+        subject: `Payment Confirmed! #${order.orderNumber} — Baby Mall`,
+        html: orderConfirmationTemplate(order, req.user),
+      });
+      console.log('✅ CONFIRMATION EMAIL SENT to:', req.user.email);
+    } catch (e) {
+      console.error('⚠️  Email failed:', e.message);
+    }
+
+    res.status(201).json({ 
+      success: true, 
+      message: '✅ Payment verified and order created successfully!',
+      order 
+    });
+
+  } catch (error) {
+    console.error('❌ Error in completeRazorpayOrder:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server Error"
+    });
+  }
+};
+
 // @desc    Get user's orders
 // @route   GET /api/orders/my
 exports.getMyOrders = async (req, res) => {
