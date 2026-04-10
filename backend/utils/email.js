@@ -1,10 +1,11 @@
-const { Resend } = require('resend');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Brevo API client
+const client = SibApiV3Sdk.ApiClient.instance;
+const apiKey = client.authentications['api-key'];
 
 /**
- * Send email using Resend API
+ * Send email using Brevo (Sendinblue) API
  * @param {Object} options - Email options
  * @param {string} options.to - Recipient email address
  * @param {string} options.subject - Email subject line
@@ -15,41 +16,44 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sendEmail = async ({ to, subject, html }) => {
   try {
     // Validate required environment variables
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY environment variable is not set');
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('BREVO_API_KEY environment variable is not set');
     }
 
-    const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    // Set Brevo API key
+    apiKey.apiKey = process.env.BREVO_API_KEY;
 
-    console.log(`📧 Sending email via Resend API`);
+    const emailFrom = process.env.EMAIL_FROM || 'noreply@babymall.com';
+
+    console.log(`📧 Sending email via Brevo API`);
     console.log(`   To: ${to}`);
     console.log(`   Subject: ${subject}`);
     console.log(`   From: ${emailFrom}`);
 
-    // Send email using Resend API
-    const response = await resend.emails.send({
-      from: emailFrom,
-      to,
-      subject,
-      html,
+    // Initialize Transactional Email API
+    const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+
+    // Send email using Brevo API
+    const response = await tranEmailApi.sendTransacEmail({
+      sender: {
+        email: emailFrom,
+        name: "Baby Mall"
+      },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html
     });
 
-    // Check for API errors
-    if (response.error) {
-      console.error('❌ Resend API returned an error:', response.error);
-      throw new Error(`Resend API error: ${response.error.message}`);
-    }
-
     // Verify response has required data
-    if (!response.data || !response.data.id) {
-      console.error('❌ Invalid response from Resend API:', response);
-      throw new Error('Resend API returned invalid response');
+    if (!response || !response.messageId) {
+      console.error('❌ Invalid response from Brevo API:', response);
+      throw new Error('Brevo API returned invalid response');
     }
 
     console.log(`✅ Email sent successfully!`);
-    console.log(`   Email ID: ${response.data.id}`);
+    console.log(`   Message ID: ${response.messageId}`);
 
-    return response.data;
+    return response;
 
   } catch (error) {
     console.error('❌ Email sending failed!');
@@ -58,24 +62,23 @@ const sendEmail = async ({ to, subject, html }) => {
     console.error('   Subject:', subject);
 
     // Log detailed troubleshooting info
-    if (error.message.includes('RESEND_API_KEY')) {
-      console.error('\n⚠️  TROUBLESHOOTING: Missing RESEND_API_KEY');
-      console.error('   → Set RESEND_API_KEY in environment variables');
-      console.error('   → Get API key from: https://resend.com/api-keys');
+    if (error.message.includes('BREVO_API_KEY')) {
+      console.error('\n⚠️  TROUBLESHOOTING: Missing BREVO_API_KEY');
+      console.error('   → Set BREVO_API_KEY in environment variables');
+      console.error('   → Get API key from: https://app.brevo.com/settings/account/api');
     }
 
     if (error.message.includes('unauthorized') || error.message.includes('invalid')) {
       console.error('\n⚠️  TROUBLESHOOTING: Invalid API Key');
-      console.error('   → Check RESEND_API_KEY value');
-      console.error('   → Ensure it starts with "re_"');
-      console.error('   → Try generating a new key from Resend dashboard');
+      console.error('   → Check BREVO_API_KEY value');
+      console.error('   → Ensure it starts with "xkeysib-"');
+      console.error('   → Try generating a new key from Brevo dashboard');
     }
 
-    if (error.message.includes('from') || error.message.includes('domain')) {
-      console.error('\n⚠️  TROUBLESHOOTING: Invalid Sender Domain');
+    if (error.message.includes('from') || error.message.includes('sender')) {
+      console.error('\n⚠️  TROUBLESHOOTING: Invalid Sender Email');
       console.error('   → Verify EMAIL_FROM is set correctly');
-      console.error('   → For testing: use onboarding@resend.dev');
-      console.error('   → For production: verify your domain in Resend dashboard');
+      console.error('   → Must be a verified sender in Brevo');
     }
 
     // Re-throw the error for calling code to handle

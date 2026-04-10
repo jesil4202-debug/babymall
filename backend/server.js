@@ -23,15 +23,15 @@ const logEnvDiagnostics = () => {
   console.log('  NODE_ENV:', process.env.NODE_ENV);
   console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || '❌ NOT SET');
   console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ SET (hidden)' : '❌ NOT SET');
-  console.log('  RESEND_API_KEY:', process.env.RESEND_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET');
+  console.log('  BREVO_API_KEY:', process.env.BREVO_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET');
   console.log('  EMAIL_FROM:', process.env.EMAIL_FROM || '❌ NOT SET');
   console.log('');
   
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.BREVO_API_KEY) {
     console.error('❌ CRITICAL: Email service configuration is missing!');
     console.error('   On Render: Dashboard → Environment');
-    console.error('   Required: RESEND_API_KEY, EMAIL_FROM');
-    console.error('   Get API key from: https://resend.com/api-keys');
+    console.error('   Required: BREVO_API_KEY, EMAIL_FROM');
+    console.error('   Get API key from: https://app.brevo.com/settings/account/api');
   }
 };
 
