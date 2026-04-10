@@ -83,80 +83,92 @@ export const downloadOrderInvoice = async (
   try {
     // Ensure we're on client-side
     if (typeof window === 'undefined') {
+      console.error('❌ [Invoice] Not on client-side');
       toast.error('Please try again');
       return;
     }
 
-    const invoiceUrl = `${apiUrl}/api/invoice/${orderId}`;
+    // Validate inputs
+    if (!orderId) {
+      console.error('❌ [Invoice] Order ID missing');
+      toast.error('Invalid order');
+      return;
+    }
+
+    if (!apiUrl) {
+      console.error('❌ [Invoice] API URL not configured:', process.env.NEXT_PUBLIC_API_URL);
+      toast.error('Configuration error');
+      return;
+    }
+
+    // Build correct URL
+    const invoiceUrl = apiUrl.endsWith('/api') 
+      ? `${apiUrl}/invoice/${orderId}`
+      : `${apiUrl}/api/invoice/${orderId}`;
     
-    // Get token from localStorage with error handling
+    console.log('🔍 [Invoice URL]', invoiceUrl);
+
+    // Get token
     let token: string | null = null;
     try {
       token = localStorage.getItem('bm_token');
+      console.log('🔑 [Token found]', token ? 'YES ✅' : 'NO ❌');
     } catch (err) {
-      console.error('❌ localStorage access failed:', err);
+      console.error('❌ [localStorage] Access failed:', err);
       toast.error('Session error. Please login again.');
       return;
     }
 
     if (!token) {
-      console.warn('⚠️  No token in localStorage');
+      console.error('❌ [Token] Missing - user must login');
       toast.error('Not authorized. Please login.');
       return;
     }
 
-    console.log(`📥 Requesting invoice for order: ${orderId}`);
-    console.log(`🔑 Token present: ${token.substring(0, 20)}...`);
+    console.log('📤 [Request] Sending Authorization header...');
+    console.log('📝 [Header] Authorization: Bearer ' + token.substring(0, 20) + '...');
 
-    // Fetch the invoice PDF with Authorization header
+    // CRITICAL: Include credentials and Authorization header
     const response = await fetch(invoiceUrl, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/pdf',
       },
     });
 
-    // Handle authorization errors
+    console.log('📊 [Response] Status:', response.status);
+
     if (response.status === 401) {
-      console.error('❌ Authorization failed - invalid or expired token');
+      console.error('❌ [Auth] 401 Unauthorized');
       toast.error('Authorization expired. Please login again.');
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('bm_token');
-        window.location.href = '/auth/login';
-      }
+      localStorage.removeItem('bm_token');
+      window.location.href = '/auth/login';
       return;
     }
 
-    // Handle not found or other errors
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ Invoice download error:', errorData);
-      toast.error(errorData.message || 'Failed to download invoice');
+      const error = await response.text();
+      console.error('❌ [Error]', error);
+      toast.error('Failed to download invoice');
       return;
     }
 
-    // Convert response to blob
     const blob = await response.blob();
-
-    // Create blob URL
     const blobUrl = window.URL.createObjectURL(blob);
-
-    // Create temporary link and trigger download
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = `invoice-${orderNumber || orderId}.pdf`;
     document.body.appendChild(link);
     link.click();
-
-    // Cleanup
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
 
-    console.log(`✅ Invoice downloaded: invoice-${orderNumber || orderId}.pdf`);
-    toast.success('Invoice download started');
+    console.log('✅ [Success] Invoice downloaded');
+    toast.success('Invoice downloaded successfully');
   } catch (error) {
-    console.error('❌ Invoice download error:', error);
+    console.error('❌ [Fatal Error]', error);
     toast.error('Failed to download invoice');
   }
 };
