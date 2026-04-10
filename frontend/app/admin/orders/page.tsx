@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Eye, Edit2, ChevronDown } from 'lucide-react';
+import { Search, Eye, Edit2, ChevronDown, Download } from 'lucide-react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -132,9 +132,18 @@ export default function AdminOrdersPage() {
                         </select>
                       </td>
                       <td className="px-6 py-4">
-                        <Link href={`/account/orders/${order._id}`} target="_blank" className="p-2 rounded-lg hover:bg-surface-100 transition-colors text-gray-400 hover:text-gray-700 inline-flex">
-                          <Eye className="w-4 h-4" />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${order._id}`, '_blank')}
+                            className="p-2 rounded-lg hover:bg-surface-100 transition-colors text-gray-400 hover:text-gray-700 inline-flex"
+                            title="Download Invoice"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          <Link href={`/account/orders/${order._id}`} target="_blank" className="p-2 rounded-lg hover:bg-surface-100 transition-colors text-gray-400 hover:text-gray-700 inline-flex">
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

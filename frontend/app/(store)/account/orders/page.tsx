@@ -72,6 +72,13 @@ export default function OrdersPage() {
                       <span className={`${status.color} text-sm`}>
                         <status.icon className="w-3.5 h-3.5" /> {status.label}
                       </span>
+                      <button 
+                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${order._id}`, '_blank')}
+                        className="btn-ghost text-sm py-1.5 px-3"
+                        title="Download Invoice"
+                      >
+                        <Download className="w-4 h-4" /> Invoice
+                      </button>
                       <Link href={`/account/orders/${order._id}`} className="btn-ghost text-sm py-1.5 px-3">
                         <Eye className="w-4 h-4" /> View
                       </Link>

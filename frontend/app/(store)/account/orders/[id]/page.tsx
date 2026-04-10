@@ -34,7 +34,7 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const handleDownloadInvoice = () => {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/orders/${id}/invoice`, '_blank');
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${id}`, '_blank');
   };
 
   if (isLoading) return (
