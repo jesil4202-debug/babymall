@@ -43,6 +43,7 @@ const orderRoutes = require('./routes/orders');
 const cartRoutes = require('./routes/cart');
 const bannerRoutes = require('./routes/banners');
 const adminRoutes = require('./routes/admin');
+const testRoutes = require('./routes/test');
 
 const app = express();
 
@@ -93,6 +94,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth/otp', otpRoutes);
+app.use('/api', testRoutes);
 
 // 404 handler
 app.use((req, res) => {

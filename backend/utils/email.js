@@ -15,6 +15,10 @@ const apiKey = client.authentications['api-key'];
  */
 const sendEmail = async ({ to, subject, html }) => {
   try {
+    // DEBUG: Check environment variables
+    console.log("🔍 BREVO_API_KEY:", process.env.BREVO_API_KEY ? "✅ Loaded" : "❌ Missing");
+    console.log("🔍 EMAIL_FROM:", process.env.EMAIL_FROM || "❌ Missing");
+
     // Validate required environment variables
     if (!process.env.BREVO_API_KEY) {
       throw new Error('BREVO_API_KEY environment variable is not set');
@@ -60,6 +64,9 @@ const sendEmail = async ({ to, subject, html }) => {
     console.error('   Error Message:', error.message);
     console.error('   Recipient:', to);
     console.error('   Subject:', subject);
+
+    // DEBUG: Log full Brevo response
+    console.error("🔴 BREVO FULL ERROR:", JSON.stringify(error.response?.body || error, null, 2));
 
     // Log detailed troubleshooting info
     if (error.message.includes('BREVO_API_KEY')) {
