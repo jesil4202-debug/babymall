@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Package, Truck, CheckCircle, Clock, XCircle, MapPin, Download, ArrowLeft, RotateCcw } from 'lucide-react';
 import api from '@/lib/api';
+import { downloadOrderInvoice } from '@/lib/useInvoiceDownload';
 import { useAuthStore } from '@/store/authStore';
 import { getImageUrl } from '@/lib/getImageUrl';
 
@@ -34,7 +35,7 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const handleDownloadInvoice = () => {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${id}`, '_blank');
+    downloadOrderInvoice(id, process.env.NEXT_PUBLIC_API_URL!, order?.orderNumber);
   };
 
   if (isLoading) return (

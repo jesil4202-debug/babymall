@@ -11,6 +11,7 @@ exports.protect = async (req, res, next) => {
   }
 
   if (!token) {
+    console.log(`⚠️  No token provided for ${req.method} ${req.path}`);
     return res.status(401).json({ success: false, message: 'Not authorized. Please log in.' });
   }
 
@@ -18,13 +19,17 @@ exports.protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
     if (!req.user) {
+      console.log(`❌ User not found - Token ID: ${decoded.id}`);
       return res.status(401).json({ success: false, message: 'User no longer exists.' });
     }
     if (!req.user.isActive) {
+      console.log(`❌ Account deactivated - User: ${req.user.email}`);
       return res.status(401).json({ success: false, message: 'Account is deactivated.' });
     }
+    console.log(`✅ JWT verified - User: ${req.user.email} (${req.user.role})`);
     next();
   } catch {
+    console.log(`❌ JWT verification failed`);
     return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
   }
 };

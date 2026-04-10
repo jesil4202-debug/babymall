@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Eye, Edit2, ChevronDown, Download } from 'lucide-react';
 import api from '@/lib/api';
+import { downloadOrderInvoice } from '@/lib/useInvoiceDownload';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 
@@ -134,7 +135,7 @@ export default function AdminOrdersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button 
-                            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${order._id}`, '_blank')}
+                            onClick={() => downloadOrderInvoice(order._id, process.env.NEXT_PUBLIC_API_URL!, order.orderNumber)}
                             className="p-2 rounded-lg hover:bg-surface-100 transition-colors text-gray-400 hover:text-gray-700 inline-flex"
                             title="Download Invoice"
                           >

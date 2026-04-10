@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Package, ChevronRight, Clock, Truck, CheckCircle, XCircle, RotateCcw, Download, Eye } from 'lucide-react';
 import api from '@/lib/api';
+import { downloadOrderInvoice } from '@/lib/useInvoiceDownload';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -73,7 +74,7 @@ export default function OrdersPage() {
                         <status.icon className="w-3.5 h-3.5" /> {status.label}
                       </span>
                       <button 
-                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoice/${order._id}`, '_blank')}
+                        onClick={() => downloadOrderInvoice(order._id, process.env.NEXT_PUBLIC_API_URL!, order.orderNumber)}
                         className="btn-ghost text-sm py-1.5 px-3"
                         title="Download Invoice"
                       >
