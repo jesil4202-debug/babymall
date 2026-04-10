@@ -25,18 +25,22 @@ const sendEmail = async ({ to, subject, html }) => {
     // Set Brevo API key
     apiKey.apiKey = process.env.BREVO_API_KEY;
 
-    const emailFrom = process.env.EMAIL_FROM || 'noreply@babymall.com';
+    const emailFromRaw = process.env.EMAIL_FROM || 'noreply@babymall.com';
+    
+    // Parse email address from format: "Name <email@example.com>"
+    const senderEmail = emailFromRaw.match(/<(.+?)>/)?.[1] || emailFromRaw;
     
     console.log(`📤 Sending email via Brevo API to: ${to}`);
     console.log(`   Subject: ${subject}`);
-    console.log(`   From: ${emailFrom}`);
+    console.log(`   From (raw): ${emailFromRaw}`);
+    console.log(`   Parsed sender email: ${senderEmail}`);
 
     // Initialize Transactional Email API
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
     const response = await tranEmailApi.sendTransacEmail({
       sender: {
-        email: emailFrom,
+        email: senderEmail,
         name: "Baby Mall"
       },
       to: [{ email: to }],
