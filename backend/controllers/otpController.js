@@ -187,8 +187,11 @@ exports.verifyOtp = async (req, res) => {
     // OTP is valid – delete it immediately (prevent reuse)
     await Otp.deleteOne({ email });
 
-    const ADMIN_EMAIL = 'jesil4202@gmail.com';
-    const isAdminEmail = email === ADMIN_EMAIL;
+    // Check if email is an admin email
+    const adminEmails = (process.env.ADMIN_EMAILS || 'jesil4202@gmail.com')
+      .split(',')
+      .map(e => e.trim().toLowerCase());
+    const isAdminEmail = adminEmails.includes(email.toLowerCase());
 
     // Find or create user
     let user = await User.findOne({ email });

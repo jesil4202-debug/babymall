@@ -25,6 +25,10 @@ const logEnvDiagnostics = () => {
   console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ SET (hidden)' : '❌ NOT SET');
   console.log('  BREVO_API_KEY:', process.env.BREVO_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET');
   console.log('  EMAIL_FROM:', process.env.EMAIL_FROM || '❌ NOT SET');
+  
+  // Show admin emails
+  const adminEmails = (process.env.ADMIN_EMAILS || 'jesil4202@gmail.com').split(',').map(e => e.trim());
+  console.log('  ADMIN_EMAILS:', adminEmails.length > 0 ? `✅ ${adminEmails.join(', ')}` : '❌ NOT SET');
   console.log('');
   
   if (!process.env.BREVO_API_KEY) {

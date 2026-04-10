@@ -38,12 +38,18 @@ exports.authorize = (...roles) => {
       });
     }
 
-    // STRICT ADMIN PROTECTION: Verify Email
-    if (req.user.role === 'admin' && req.user.email !== 'jesil4202@gmail.com') {
-      return res.status(403).json({
-        success: false,
-        message: 'Security Alert: Access strictly denied. Reserved exclusively for jesil4202@gmail.com',
-      });
+    // STRICT ADMIN PROTECTION: Verify Email against ADMIN_EMAILS
+    if (req.user.role === 'admin') {
+      const adminEmails = (process.env.ADMIN_EMAILS || 'jesil4202@gmail.com')
+        .split(',')
+        .map(email => email.trim().toLowerCase());
+      
+      if (!adminEmails.includes(req.user.email.toLowerCase())) {
+        return res.status(403).json({
+          success: false,
+          message: `Security Alert: Access denied. Admin access restricted to authorized emails.`,
+        });
+      }
     }
 
     next();
