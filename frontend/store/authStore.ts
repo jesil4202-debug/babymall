@@ -64,11 +64,31 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await api.post('/auth/otp/verify', { email, otp, name });
           console.log('✅ OTP Verified:', { email, role: data.user.role, name: data.user.name });
+          console.log('📥 Backend response has token:', !!data.token);
+          console.log('🔑 Token received:', data.token ? `${data.token.substring(0, 30)}...` : 'MISSING');
+          
+          if (!data.token) {
+            console.error('❌ CRITICAL: Backend did not send token!');
+            throw new Error('No token received from backend');
+          }
+
+          // Save token to localStorage
+          try {
+            localStorage.setItem('bm_token', data.token);
+            console.log('💾 Token saved to localStorage');
+            const verify = localStorage.getItem('bm_token');
+            console.log('✅ Token retrieval check:', verify ? `${verify.substring(0, 30)}...` : 'FAILED TO RETRIEVE');
+          } catch (storageErr) {
+            console.error('❌ Failed to save token to localStorage:', storageErr);
+            throw storageErr;
+          }
+
           if (data.user.role === 'admin') {
             console.log('🔒 Admin role detected - access to admin panel enabled');
           }
-          localStorage.setItem('bm_token', data.token);
+          
           set({ user: data.user, token: data.token, isAuthenticated: true });
+          console.log('✅ Zustand state updated with user and token');
         } finally {
           set({ isLoading: false });
         }

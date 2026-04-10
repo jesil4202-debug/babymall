@@ -28,15 +28,24 @@ const sendTokenResponse = (user, statusCode, res) => {
   };
 
   console.log(`✅ Login Successful - User: ${user.email}, Role: ${user.role}`);
+  console.log(`🔑 Token generated: ${token.substring(0, 30)}...`);
   if (user.role === 'admin') {
     console.log(`🔒 Admin Access Granted: ${user.email}`);
   }
 
-  res.status(statusCode).cookie('token', token, cookieOptions).json({
+  const responsePayload = {
     success: true,
     token,
     user: userData,
-  });
+  };
+
+  console.log(`📤 Response payload:`, JSON.stringify({
+    success: responsePayload.success,
+    token: responsePayload.token ? `${responsePayload.token.substring(0, 30)}...` : 'MISSING',
+    user: responsePayload.user.email,
+  }));
+
+  res.status(statusCode).cookie('token', token, cookieOptions).json(responsePayload);
 };
 
 module.exports = { generateToken, sendTokenResponse };
